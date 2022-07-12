@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+	<code>oct_megamenu</code>
+	<name>Octemplates - Megamenu</name>
+	<version>1.0.0</version>
+	<author>Octemplates</author>
+	<link>http://octemplates.net/</link>
+	<file path="admin/controller/common/filemanager.php">
+		<operation>
+			<search trim="true"><![CDATA[gif,]]></search>
+			<add trim="true" position="replace"><![CDATA[gif,svg,SVG,]]></add>
+		</operation>
+		<operation>
+			<search trim="true"><![CDATA['png']]></search>
+			<add trim="true" position="before"><![CDATA[
+			'svg',
+			]]></add>
+		</operation>
+		<operation>
+			<search trim="true"><![CDATA['image/gif']]></search>
+			<add trim="true" position="before"><![CDATA[
+			'image/svg+xml',
+			]]></add>
+		</operation>
+	</file>
+	<file path="admin/model/tool/image.php">
+		<operation error="skip">
+			<search trim="true"><![CDATA[$extension = pathinfo($filename, PATHINFO_EXTENSION);]]></search>
+			<add trim="true" position="after"><![CDATA[
+			if (strtolower($extension) == 'svg') {
+				$image_new = $filename;
+			} else {
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search trim="true"><![CDATA[if ($this->request->server['HTTPS']) {]]></search>
+			<add trim="true" position="before"> <![CDATA[
+			}
+			]]></add>
+		</operation>
+	</file>
+	<file path="admin/controller/catalog/category.php">
+    	<operation error="skip">
+			<search><![CDATA[$data['placeholder'] = $this->model_tool_image->resize('no_image.png', 100, 100);]]></search>
+			<add position="after"><![CDATA[
+			if (isset($this->request->post['oct_image'])) {
+				$data['oct_image'] = $this->request->post['oct_image'];
+			} elseif (!empty($category_info)) {
+				$data['oct_image'] = $category_info['oct_image'];
+			} else {
+				$data['oct_image'] = '';
+			}
+
+			if (isset($this->request->post['oct_image']) && is_file(DIR_IMAGE . $this->request->post['oct_image'])) {
+				$data['oct_thumb_icon'] = $this->model_tool_image->resize($this->request->post['oct_image'], 100, 100);
+			} elseif (!empty($category_info) && is_file(DIR_IMAGE . $category_info['oct_image'])) {
+				$data['oct_thumb_icon'] = $this->model_tool_image->resize($category_info['oct_image'], 100, 100);
+			} else {
+				$data['oct_thumb_icon'] = $this->model_tool_image->resize('no_image.png', 100, 100);
+			}
+			]]></add>
+    	</operation>
+	</file>
+	<file path="admin/model/catalog/category.php">
+    	<operation error="skip">
+			<search><![CDATA[if (isset($data['image'])) {]]></search>
+			<add position="before"><![CDATA[
+			if (isset($data['oct_image'])) {
+				$this->db->query("UPDATE " . DB_PREFIX . "category SET oct_image = '" . $this->db->escape($data['oct_image']) . "' WHERE category_id = '" . (int)$category_id . "'");
+			}
+			]]></add>
+    	</operation>
+	</file>
+	<file path="admin/view/template/catalog/category_form.twig">
+    	<operation error="skip">
+			<search><![CDATA[<label class="col-sm-2 control-label" for="input-top"><span data-toggle="tooltip" title="{{ help_top }}">{{ entry_top }}</span></label>]]></search>
+			<add position="before" offset="1"><![CDATA[
+			<div class="form-group">
+                <label class="col-sm-2 control-label">{{ entry_oct_image }}</label>
+                <div class="col-sm-10"><a href="" id="thumb-oct_image" data-toggle="image" class="img-oct_thumbnail"><img style="width:100px;" src="{{ oct_thumb_icon }}" alt="" title="" data-placeholder="{{ placeholder }}" /></a>
+                  <input type="hidden" name="oct_image" value="{{ oct_image }}" id="input-oct_image" />
+                </div>
+            </div>
+			]]></add>
+    	</operation>
+	</file>
+	<file path="admin/controller/catalog/category.php">
+		<operation error="skip">
+			<search><![CDATA[$data['languages'] = $this->model_localisation_language->getLanguages();]]></search>
+			<add position="after"><![CDATA[
+			if ($this->config->get("oct_megamenu_categories_page")) {
+				$data['oct_cat_page'] = $this->config->get("oct_megamenu_categories_page");
+
+				if (isset($this->request->post['oct_cat_pages'])) {
+					$data['oct_cat_pages'] = $this->request->post['oct_cat_pages'];
+				} elseif (isset($this->request->get['category_id'])) {
+					$data['oct_cat_pages'] = $this->model_catalog_category->getOCTCatPages($this->request->get['category_id']);
+				} else {
+					$data['oct_cat_pages'] = [];
+				}
+			}
+			]]></add>
+    	</operation>
+	</file>
+	<file path="admin/model/catalog/category.php">
+		<operation error="skip">
+			<search><![CDATA[if (isset($data['image'])) {]]></search>
+			<add position="before"><![CDATA[
+			if ($this->config->get("oct_megamenu_categories_page")) {
+				$this->db->query("UPDATE " . DB_PREFIX . "category SET page_group_links = '' WHERE category_id = '" . (int)$category_id . "'");
+
+				if (isset($data['oct_cat_pages'])) {
+					$this->db->query("UPDATE " . DB_PREFIX . "category SET page_group_links = '" . $this->db->escape(serialize($data['oct_cat_pages'])) . "' WHERE category_id = '" . (int)$category_id . "'");
+				}
+
+				$this->cache->delete('octemplates');
+			}
+			]]></add>
+    	</operation>
+    	<operation error="skip">
+			<search><![CDATA[public function getTotalCategories() {]]></search>
+			<add position="before"><![CDATA[
+			public function getOCTCatPages($category_id) {
+				$query = $this->db->query("SELECT page_group_links FROM " . DB_PREFIX . "category WHERE category_id = '". (int) $category_id ."'");
+
+				return unserialize($query->row['page_group_links']);
+			}
+			]]></add>
+    	</operation>
+	</file>
+	<file path="admin/view/template/catalog/category_form.twig">
+    	<operation error="skip">
+			<search><![CDATA[<li><a href="#tab-design" data-toggle="tab">{{ tab_design }}</a></li>]]></search>
+			<add position="after"><![CDATA[
+			{% if oct_cat_page is defined and oct_cat_page %}
+			<li><a href="#tab-pages" data-toggle="tab">{{ tab_oct_category_pages }}</a></li>
+			{% endif %}
+			]]></add>
+    	</operation>
+    	<operation error="skip">
+			<search><![CDATA[<div class="tab-pane" id="tab-seo">]]></search>
+			<add position="before"><![CDATA[
+			{% if oct_cat_page is defined and oct_cat_page %}
+			<div class="tab-pane" id="tab-pages">
+            		<table class="table table-bordered table-hover" id="oct_cat_pages_table">
+					<tbody class="group_in">
+						{% set advantages_row = 0 %}
+						{% set advantages_row_page = 0 %}
+						{% for oct_cat_page in oct_cat_pages %}
+						<tr id="advantage-row{{ advantages_row }}">
+							<td>
+								<table class="table table-bordered table-hover">
+									<thead>
+										<tr>
+											<th>{{ text_oct_group_links }}</th>
+											<th></th>
+										</tr>
+									</thead>
+									<tr>
+										<td class="text-right">
+											{% for language in languages %}
+											<div class="input-group">
+						                        <span class="input-group-addon">
+						                        	<img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" />
+						                        </span>
+												<input type="text" name="oct_cat_pages[{{ advantages_row }}][page_group][{{ language.language_id }}]" value="{{ oct_cat_page.page_group[language.language_id] }}" id="advantage-title-{{ advantages_row }}{{ language.language_id }}" class="form-control" />
+											</div>
+											{% endfor %}
+											<br />
+											<table class="table table-bordered table-hover">
+												<thead>
+													<tr>
+														<th>{{ text_oct_group_links_title }}</th>
+														<th>{{ text_oct_group_links_link }}</th>
+														<th></th>
+													</tr>
+												</thead>
+												<tbody class="links_in{{ advantages_row }}">
+													{% for oct_cat_page_link in oct_cat_page.page_links %}
+													<tr id="advantage-page-row{{ advantages_row }}-{{ advantages_row_page }}">
+														<td>
+															{% for language in languages %}
+															<div class="input-group">
+										                        <span class="input-group-addon">
+										                        	<img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" />
+										                        </span>
+																<input type="text" name="oct_cat_pages[{{ advantages_row }}][page_links][{{ advantages_row_page }}][{{ language.language_id }}][title]" value="{{ oct_cat_page_link[language.language_id].title }}" id="advantage-linktitle-{{ advantages_row }}{{ advantages_row_page }}{{ language.language_id }}" class="form-control" />
+															</div>
+															{% endfor %}
+														</td>
+														<td>
+															{% for language in languages %}
+															<div class="input-group">
+										                        <span class="input-group-addon">
+										                        	<img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" />
+										                        </span>
+																<input type="text" name="oct_cat_pages[{{ advantages_row }}][page_links][{{ advantages_row_page }}][{{ language.language_id }}][link]" value="{{ oct_cat_page_link[language.language_id].link }}" id="advantage-link-{{ advantages_row }}{{ advantages_row_page }}{{ language.language_id }}" class="form-control" />
+															</div>
+															{% endfor %}
+														</td>
+														<td class="text-left" style="width:5%;">
+															<button type="button" onclick="$('#advantage-page-row{{ advantages_row }}-{{ advantages_row_page }}').remove()" data-toggle="tooltip" title="{{ button_remove }}" class="btn btn-danger"><i class="fa fa-minus-circle"></i></button>
+														</td>
+													</tr>
+													{% set advantages_row_page = advantages_row_page + 1 %}
+													{% endfor %}
+												</tbody>
+												<tfoot>
+													<tr>
+														<td colspan="2"></td>
+														<td class="text-left" style="width:5%;">
+															<button type="button" onclick="addOCTCatLink({{ advantages_row }});" data-toggle="tooltip" title="" class="btn btn-primary" data-original-title="add group"><i class="fa fa-plus-circle"></i></button>
+														</td>
+													</tr>
+												</tfoot>
+											</table>
+										</td>
+										<td class="text-right" style="width:5%;">
+											<button type="button" onclick="$('#advantage-row{{ advantages_row }}').remove()" data-toggle="tooltip" title="{{ button_remove }}" class="btn btn-danger"><i class="fa fa-minus-circle"></i></button>
+										</td>
+									</tr>
+								</table>
+							</td>
+						</tr>
+						{% set advantages_row = advantages_row + 1 %}
+						{% endfor %}
+					</tbody>
+					<tfoot>
+						<tr>
+							<td class="text-right">
+								<button type="button" onclick="addOCTCatGroup();" data-toggle="tooltip" title="" class="btn btn-primary" data-original-title="add group"><i class="fa fa-plus-circle"></i></button>
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+				<script>
+				let advantages_row = {{ advantages_row }};
+
+				function addOCTCatGroup() {
+					const html = `
+					<tr id="advantage-row${ advantages_row }">
+						<td>
+							<table class="table table-bordered table-hover">
+								<thead>
+									<tr>
+										<th>{{ text_oct_group_links }}</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tr>
+									<td class="text-right">
+										{% for language in languages %}
+										<div class="input-group">
+					                        <span class="input-group-addon">
+					                        	<img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" />
+					                        </span>
+											<input type="text" name="oct_cat_pages[${ advantages_row }][page_group][{{ language.language_id }}]" value="" id="advantage-title-${ advantages_row }{{ language.language_id }}" class="form-control" />
+										</div>
+										{% endfor %}
+										<br />
+										<table class="table table-bordered table-hover">
+											<thead>
+												<tr>
+													<th>{{ text_oct_group_links_title }}</th>
+													<th>{{ text_oct_group_links_link }}</th>
+													<th></th>
+												</tr>
+											</thead>
+											<tbody class="links_in${ advantages_row }"></tbody>
+											<tfoot>
+												<tr>
+													<td colspan="2"></td>
+													<td class="text-left" style="width:5%;">
+														<button type="button" onclick="addOCTCatLink(${ advantages_row });" data-toggle="tooltip" title="" class="btn btn-primary" data-original-title="add group"><i class="fa fa-plus-circle"></i></button>
+													</td>
+												</tr>
+											</tfoot>
+										</table>
+									</td>
+									<td class="text-right" style="width:5%;">
+										<button type="button" onclick="$('#advantage-row${ advantages_row }').remove()" data-toggle="tooltip" title="{{ button_remove }}" class="btn btn-danger"><i class="fa fa-minus-circle"></i></button>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+					`;
+
+					$('#oct_cat_pages_table tbody.group_in').append(html);
+
+					advantages_row++;
+				}
+
+				let advantages_row_page = {{ advantages_row_page }};
+
+				function addOCTCatLink(row) {
+					const html = `
+					<tr id="advantage-page-row${ row }-${ advantages_row_page }">
+						<td>
+							{% for language in languages %}
+							<div class="input-group">
+		                        <span class="input-group-addon">
+		                        	<img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" />
+		                        </span>
+								<input type="text" name="oct_cat_pages[${ row }][page_links][${ advantages_row_page }][{{ language.language_id }}][title]" value="" id="advantage-linktitle-${ row }${ advantages_row_page }{{ language.language_id }}" class="form-control" />
+							</div>
+							{% endfor %}
+						</td>
+						<td>
+							{% for language in languages %}
+							<div class="input-group">
+		                        <span class="input-group-addon">
+		                        	<img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" />
+		                        </span>
+								<input type="text" name="oct_cat_pages[${ row }][page_links][${ advantages_row_page }][{{ language.language_id }}][link]" value="" id="advantage-link-${ row }${ advantages_row_page }{{ language.language_id }}" class="form-control" />
+							</div>
+							{% endfor %}
+						</td>
+						<td class="text-left" style="width:5%;">
+							<button type="button" onclick="$('#advantage-page-row${ row }-${ advantages_row_page }').remove()" data-toggle="tooltip" title="{{ button_remove }}" class="btn btn-danger"><i class="fa fa-minus-circle"></i></button>
+						</td>
+					</tr>
+					`;
+
+					$('#oct_cat_pages_table tbody.links_in'+row).append(html);
+
+					advantages_row_page++;
+				}
+				</script>
+            </div>
+            {% endif %}
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/model/tool/image.php">
+		<operation error="skip">
+			<search trim="true"><![CDATA[$extension = pathinfo($filename, PATHINFO_EXTENSION);]]></search>
+			<add trim="true" position="after"><![CDATA[
+			if (strtolower($extension) == 'svg') {
+				$oct_webp_image = $octWebpIs = false;
+
+				$image_new = $filename;
+			} else {
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search trim="true"><![CDATA[if ($this->request->server['HTTPS']) {]]></search>
+			<add trim="true" position="before"><![CDATA[
+			}
+			]]></add>
+		</operation>
+	</file>
+	<file path="catalog/controller/common/header.php">
+    	<operation error="skip">
+			<search><![CDATA[$data['menu'] = $this->load->controller('common/menu');]]></search>
+			<add position="replace"><![CDATA[
+			if ($this->config->get('oct_megamenu_status')) {
+				$data['menu'] = $this->load->controller('octemplates/module/oct_megamenu');
+			} else {
+				$data['menu'] = $this->load->controller('common/menu', ['deff' => 1]);
+			}
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/controller/common/menu.php">
+		<operation error="skip">
+			<search><![CDATA[public function index() {]]></search>
+			<add position="replace"><![CDATA[
+			public function index($data = []) {
+				$data['language_id'] = (int)$this->config->get('config_language_id');
+
+				if (isset($data['mobile'])) {
+			        $categories_icon = $this->config->get("oct_megamenu_mobile_categories_icon");
+			    } else {
+					$categories_icon = $this->config->get("oct_megamenu_categories_icon");
+				}
+			]]></add>
+    	</operation>
+		<operation error="skip">
+			<search><![CDATA[$data['categories'][] = array(]]></search>
+			<add position="before"><![CDATA[
+			if ($categories_icon) {
+				$this->load->model('tool/image');
+
+				$oct_image = $this->model_tool_image->resize($category['oct_image'], 30, 30);
+			} else {
+				$oct_image = false;
+			}
+			]]></add>
+    	</operation>
+		<operation error="skip">
+			<search><![CDATA[$children_data[] = array(]]></search>
+			<add position="replace"><![CDATA[
+			// Level 3
+			$children_data_2 = [];
+			$children_2 = $this->model_catalog_category->getCategories($child['category_id']);
+
+			foreach ($children_2 as $child_2) {
+				$filter_data2 = [
+					'filter_category_id'  => $child_2['category_id'],
+					'filter_sub_category' => true
+				];
+
+				/*
+				$children_3 = $this->model_catalog_category->getCategories($child_2['category_id']);
+
+				$children_data_3 = [];
+
+				foreach ($children_3 as $child_3) {
+					$filter_data3 = [
+						'filter_category_id'  => $child_3['category_id'],
+						'filter_sub_category' => true
+					];
+
+					$children_data_3[] = [
+						'category_id' => $child_3['category_id'],
+						'name'  => $child_3['name'] . ($this->config->get('config_product_count') ? ' (' . $this->model_catalog_product->getTotalProducts($filter_data3) . ')' : ''),
+						'oct_pages' => $this->config->get("oct_megamenu_categories_page") ? unserialize($child_3['page_group_links']) : [],
+						'href'  => $this->url->link('product/category', 'path=' . $category['category_id'] . '_' . $child['category_id'] . '_' . $child_2['category_id'] . '_' . $child_3['category_id'])
+					];
+				}
+				*/
+
+				$children_data_2[] = [
+					//'children' => $children_data_3,
+					'category_id' => $child_2['category_id'],
+					'name'  => $child_2['name'] . ($this->config->get('config_product_count') ? ' (' . $this->model_catalog_product->getTotalProducts($filter_data2) . ')' : ''),
+					'oct_pages' => $this->config->get("oct_megamenu_categories_page") ? unserialize($child_2['page_group_links']) : [],
+					'href'  => $this->url->link('product/category', 'path=' . $category['category_id'] . '_' . $child['category_id'] . '_' . $child_2['category_id'])
+				];
+			}
+
+			$children_data[] = array(
+				'children' => $children_data_2,
+				'oct_pages' => $this->config->get("oct_megamenu_categories_page") ? unserialize($child['page_group_links']) : [],
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search><![CDATA['column'   => $category['column'] ? $category['column'] : 1,]]></search>
+			<add position="replace"><![CDATA[
+			'column'   => 1,
+			'oct_pages' => $this->config->get("oct_megamenu_categories_page") ? unserialize($category['page_group_links']) : [],
+			'oct_image'     => $oct_image,
+			]]></add>
+    	</operation>
+    	<operation error="skip">
+			<search><![CDATA[$categories = $this->model_catalog_category->getCategories(0);]]></search>
+			<add position="replace"><![CDATA[
+			if(isset($this->request->server['HTTP_ACCEPT']) && strpos($this->request->server['HTTP_ACCEPT'], 'webp')) {
+				$oct_webP = 1 . '-' . $this->session->data['currency'];
+			} else {
+				$oct_webP = 0 . '-' . $this->session->data['currency'];
+			}
+
+			if (isset($data) && !empty($data) && (isset($data['mobile']) && $data['mobile'])) {
+				$oct_webP = $oct_webP . "mobile";
+			}
+
+			$result_all_categories = $this->cache->get('octemplates.category_in_menu.' . (int)$this->config->get('config_language_id') . '.' . (int)$this->config->get('config_store_id') . '.' . $this->config->get('config_customer_group_id') . '.' . $oct_webP);
+
+			$oct_cats_limit = $this->config->get('oct_megamenu_categories_limit') ? $this->config->get('oct_megamenu_categories_limit') : 0;
+
+			if (!$result_all_categories) {
+				if ($this->config->get('oct_megamenu_status') && $this->config->get('oct_megamenu_categories') && !isset($data['mobile'])) {
+					$categories = $this->model_catalog_category->getOCTCategories(0, $oct_cats_limit);
+				} else {
+					$categories = $this->model_catalog_category->getCategories(0);
+				}
+
+				$result_all_categories = [];
+			]]></add>
+    	</operation>
+    	<operation error="skip">
+			<search><![CDATA[return $this->load->view('common/menu', $data);]]></search>
+			<add position="before"><![CDATA[
+				$result_all_categories = $data['categories'];
+
+				$this->cache->set('octemplates.category_in_menu.' . (int)$this->config->get('config_language_id') . '.' . (int)$this->config->get('config_store_id') . '.' . $this->config->get('config_customer_group_id') . '.' . $oct_webP, $result_all_categories);
+			}
+
+			if ((count($result_all_categories) == $oct_cats_limit) && $oct_cats_limit) {
+				$data['oct_all_categories'] = $this->url->link('product/category/octallcategories', '', true);
+			}
+
+			$data['categories'] = $result_all_categories;
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/controller/product/category.php">
+    	<operation error="skip">
+			<search><![CDATA[public function index() {]]></search>
+			<add position="before"><![CDATA[
+			public function octAllCategories() {
+				//$this->load->language('octemplates/product/octallcategories');
+
+				$this->load->model('catalog/category');
+				$this->load->model('catalog/product');
+				$this->load->model('tool/image');
+
+				$data['breadcrumbs'] = [];
+
+				$data['breadcrumbs'][] = [
+					'text' => $this->language->get('text_home'),
+					'href' => $this->url->link('common/home')
+				];
+
+				$data['breadcrumbs'][] = [
+					'text' => $this->language->get('text_oct_all_categories'),
+					'href' => $this->url->link('octemplates/product/octallcategories', '', true)
+				];
+
+				$oct_data['breadcrumbs'] = $data['breadcrumbs'];
+
+				$data['oct_breadcrumbs'] = $this->load->controller('common/header/octBreadcrumbs', $oct_data);
+
+				$this->document->setTitle($this->language->get('text_oct_all_categories'));
+				//$this->document->setDescription($category_info['meta_description']);
+				//$this->document->setKeywords($category_info['meta_keyword']);
+
+				$data['categories'] = [];
+
+				if(isset($this->request->server['HTTP_ACCEPT']) && strpos($this->request->server['HTTP_ACCEPT'], 'webp')) {
+					$oct_webP = 1 . '-' . $this->session->data['currency'];
+				} else {
+					$oct_webP = 0 . '-' . $this->session->data['currency'];
+				}
+
+				$result_all_categories = $this->cache->get('octemplates.all_categories.' . (int)$this->config->get('config_language_id') . '.' . (int)$this->config->get('config_store_id') . '.' . $this->config->get('config_customer_group_id') . '.' . $oct_webP);
+
+				if (!$result_all_categories) {
+					foreach ($this->model_catalog_category->getCategories() as $category) {
+						$filter_data_main = [
+							'filter_category_id' => $category['category_id'],
+							'filter_sub_category' => true
+						];
+
+				        // Level 2
+				        $children_data = [];
+
+				        $children = $this->model_catalog_category->getCategories($category['category_id']);
+
+				        foreach ($children as $child) {
+				            $filter_data = array(
+				                'filter_category_id' => $child['category_id'],
+				                'filter_sub_category' => true
+				            );
+
+				            // Level 3
+				            $children_data_2 = [];
+				            $children_2      = $this->model_catalog_category->getCategories($child['category_id']);
+
+				            foreach ($children_2 as $child_2) {
+				                $filter_data2 = [
+				                    'filter_category_id' => $child_2['category_id'],
+				                    'filter_sub_category' => true
+				                ];
+
+				                /*
+				                $children_3 = $this->model_catalog_category->getCategories($child_2['category_id']);
+
+				                $children_data_3 = [];
+
+				                foreach ($children_3 as $child_3) {
+					                $filter_data3 = [
+						                'filter_category_id'  => $child_3['category_id'],
+						                'filter_sub_category' => true
+					                ];
+
+					                $children_data_3[] = [
+						                'category_id' => $child_3['category_id'],
+						                'count_products' => ($this->config->get('config_product_count') ? $this->model_catalog_product->getTotalProducts($filter_data3) : ''),
+						                'name'  => $child_3['name'],
+						                'href'  => $this->url->link('product/category', 'path=' . $category['category_id'] . '_' . $child['category_id'] . '_' . $child_2['category_id'] . '_' . $child_3['category_id'], true)
+					                ];
+				                }
+				                */
+
+				                $children_data_2[] = [
+				                    //'children' => $children_data_3,
+				                    'category_id' => $child_2['category_id'],
+				                    'count_products' => ($this->config->get('config_product_count') ? $this->model_catalog_product->getTotalProducts($filter_data2) : ''),
+				                    'name' => $child_2['name'],
+				                    'href' => $this->url->link('product/category', 'path=' . $category['category_id'] . '_' . $child['category_id'] . '_' . $child_2['category_id'], true)
+				                ];
+				            }
+
+				            $children_data[] = [
+				                'children' => $children_data_2,
+				                'count_products' => ($this->config->get('config_product_count') ? $this->model_catalog_product->getTotalProducts($filter_data) : ''),
+				                'name' => $child['name'],
+				                'href' => $this->url->link('product/category', 'path=' . $category['category_id'] . '_' . $child['category_id'], true)
+				            ];
+				        }
+
+				        // Level 1
+				        $data['categories'][] = [
+				            'name' => $category['name'],
+				            'count_products' => ($this->config->get('config_product_count') ? $this->model_catalog_product->getTotalProducts($filter_data_main) : ''),
+				            'thumb' => $category['image'] ? $this->model_tool_image->resize($category['image'], $this->config->get('theme_' . $this->config->get('config_theme') . '_image_category_width'), $this->config->get('theme_' . $this->config->get('config_theme') . '_image_category_height')) : $this->model_tool_image->resize('no-thumb.png', $this->config->get('theme_' . $this->config->get('config_theme') . '_image_category_width'), $this->config->get('theme_' . $this->config->get('config_theme') . '_image_category_height')),
+				            'children' => $children_data,
+				            'href' => $this->url->link('product/category', 'path=' . $category['category_id'], true)
+				        ];
+					}
+
+					$result_all_categories = $data['categories'];
+
+					$this->cache->set('octemplates.all_categories.' . (int)$this->config->get('config_language_id') . '.' . (int)$this->config->get('config_store_id') . '.' . $this->config->get('config_customer_group_id') . '.' . $oct_webP, $result_all_categories);
+				}
+
+				$data['categories'] = $result_all_categories;
+
+				$data['column_left'] = $this->load->controller('common/column_left');
+				$data['column_right'] = $this->load->controller('common/column_right');
+				$data['content_top'] = $this->load->controller('common/content_top');
+				$data['content_bottom'] = $this->load->controller('common/content_bottom');
+				$data['footer'] = $this->load->controller('common/footer');
+				$data['header'] = $this->load->controller('common/header');
+
+				$this->response->setOutput($this->load->view('octemplates/product/oct_all_categories', $data));
+			}
+			]]></add>
+    	</operation>
+    	<operation error="skip">
+			<search><![CDATA[$data['compare']]]></search>
+			<add position="after"><![CDATA[
+			$data['language_id'] = (int)$this->config->get('config_language_id');
+			$data['categories_page'] = (isset($oct_feelmart_data['category_page']) && $oct_feelmart_data['category_page'] && $this->config->get("oct_megamenu_categories_page")) ? unserialize($category_info['page_group_links']) : [];
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/view/theme/oct_feelmart/template/product/category.twig">
+    	<operation error="skip">
+			<search><![CDATA[<div class="fm-category-description-text">{{ description }}</div>]]></search>
+			<add position="after"><![CDATA[
+			{% if categories_page is defined and categories_page is not empty %}
+			<div class="fm-category-categories_page-text">
+				<ul class="category-landing-links list-unstyled">
+				{% for oct_page in categories_page %}
+					{% if oct_page.page_links is not empty %}
+					<li class="category-landing-links-item">
+						<span class="category-landing-links-item-title">{{ oct_page.page_group[language_id] }}</span>
+						{% for link in oct_page.page_links %}
+						<a href="{{ link[language_id].link }}" class="category-landing-links-item-link d-flex-inline align-items-center" title="{{ link[language_id].title }}"><span>{{ link[language_id].title }}</span></a>
+						{% endfor %}
+					</li>
+					{% endif %}
+				{% endfor %}
+				</ul>
+			</div>
+			{% endif %}
+			]]></add>
+    	</operation>
+	</file>
+</modification>

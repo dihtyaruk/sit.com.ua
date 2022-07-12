@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+	<code>oct_popup_view</code>
+	<name>Octemplates - Popup View</name>
+	<version>1.0.0</version>
+	<author>Octemplates</author>
+	<link>https://octemplates.net/</link>
+	<file path="catalog/controller/extension/module/{featured,bestseller,latest,special}.php">
+    	<operation error="skip">
+			<search><![CDATA[$data['products'] = array();]]></search>
+			<add position="before"><![CDATA[
+			$data['oct_popup_view_status'] = $this->config->get('oct_popup_view_status');
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/controller/product/{product,category,manufacturer,product,search,special}.php">
+    	<operation error="skip">
+			<search><![CDATA[$data['products'] = array();]]></search>
+			<add position="after"><![CDATA[
+			$data['oct_popup_view_status'] = $this->config->get('oct_popup_view_status');
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/controller/extension/module/{oct_products_from_category,oct_product_views}.php">
+    	<operation error="skip">
+			<search><![CDATA[$data['products'] = [];]]></search>
+			<add position="before"><![CDATA[
+			$data['oct_popup_view_status'] = $this->config->get('oct_popup_view_status');
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/controller/octemplates/blog/oct_blogarticle.php">
+    	<operation error="skip">
+			<search><![CDATA[$data['products'] = [];]]></search>
+			<add position="before"><![CDATA[
+			$data['oct_popup_view_status'] = $this->config->get('oct_popup_view_status');
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/controller/octemplates/module/oct_megamenu.php">
+    	<operation error="skip">
+			<search><![CDATA[$data['products'] = $this->load->controller('extension/module/oct_product_views', $settings);]]></search>
+			<add position="before"><![CDATA[
+			$data['oct_popup_view_status'] = $this->config->get('oct_popup_view_status');
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/view/theme/oct_feelmart/template/octemplates/module/oct_products_modules.twig">
+    	<operation error="skip">
+			<search><![CDATA[<ul class="fm-module-buttons-list list-unstyled d-flex">]]></search>
+			<add position="after"><![CDATA[
+			{% if oct_popup_view_status %}
+			<li class="fm-module-buttons-item">
+				<button type="button" class="fm-module-buttons-link fm-module-buttons-quickview" title="{{ oct_popup_view }}" onclick="octPopUpView('{{ product.product_id }}')"><i class="far fa-eye"></i></button>
+			</li>
+			{% endif %}
+			]]></add>
+    	</operation>
+	</file>
+	<file path="catalog/view/theme/oct_feelmart/template/product/{category,manufacturer_info,search,special}.twig">
+    	<operation error="skip">
+			<search><![CDATA[<ul class="fm-module-buttons-list list-unstyled d-flex">]]></search>
+			<add position="after"><![CDATA[
+			{% if oct_popup_view_status %}
+			<li class="fm-module-buttons-item">
+				<button type="button" class="fm-module-buttons-link fm-module-buttons-quickview" title="{{ oct_popup_view }}" onclick="octPopUpView('{{ product.product_id }}')"><i class="far fa-eye"></i></button>
+			</li>
+			{% endif %}
+			]]></add>
+    	</operation>
+	</file>
+</modification>

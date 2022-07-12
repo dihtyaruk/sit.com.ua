@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+	<code>oct_categories_quantity</code>
+	<name>Octemplates - Categories Quantity</name>
+	<version>1.0.0</version>
+	<author>Octemplates</author>
+	<link>https://octemplates.net/</link>
+	<file path="catalog/view/theme/oct_feelmart/template/product/{category,manufacturer_info,search,special}.twig">
+		<operation error="skip">
+			<search><![CDATA[<button type="button" onclick="cart.add('{{ product.product_id }}');" class="fm-product-btn"><img src="catalog/view/theme/oct_feelmart/img/shop-cart-icon.svg" alt="{{ button_cart }}" /><span>{{ button_cart }}</span></button>]]></search>
+			<add position="replace"><![CDATA[
+			{% if oct_feelmart_data.category_view_quantity is defined and oct_feelmart_data.category_view_quantity and product.can_buy is not empty %}
+			<div class="fm-product-quantity d-flex flex-column align-items-center">
+				<div class="btn-group" role="group">
+					<button type="button" class="fm-product-quantity-btn fm-product-quantity-btn-left fm-minus">-</button>
+					<input type="text" class="form-control" name="quantity" value="{{ product.minimum }}" />
+					<button type="button" class="fm-product-quantity-btn fm-product-quantity-btn-right fm-plus">+</button>
+					<input type="hidden" name="product_id" value="{{ product.product_id }}" />
+					<input class="min-qty" type="hidden" value="{{ product.minimum }}" name="min_quantity">
+				</div>
+			</div>
+			<button type="button" class="fm-product-btn fm-cat-button-cart"><img src="catalog/view/theme/oct_feelmart/img/shop-cart-icon.svg" alt="{{ button_cart }}" /><span>{{ button_cart }}</span></button>
+			{% else %}
+			<button type="button" onclick="cart.add('{{ product.product_id }}');" class="fm-product-btn"><img src="catalog/view/theme/oct_feelmart/img/shop-cart-icon.svg" alt="{{ button_cart }}" /><span>{{ button_cart }}</span></button>
+			{% endif %}
+			]]></add>
+    	</operation>
+	</file>
+</modification>
