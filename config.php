@@ -6,9 +6,9 @@ define('HTTP_SERVER', 'https://dihtyaruk.github.io/sit.com.ua/');
 define('HTTPS_SERVER', 'https://dihtyaruk.github.io/sit.com.ua/');
 
 // DIR
-define('DIR_APPLICATION', '/home/fk380811/sit.com.ua/www/catalog/');
-define('DIR_SYSTEM', '/home/fk380811/sit.com.ua/www/system/');
-define('DIR_IMAGE', '/home/fk380811/sit.com.ua/www/image/');
+define('DIR_APPLICATION', '/home/fk380811/dihtyaruk.github.io/sit.com.ua/www/catalog/');
+define('DIR_SYSTEM', '/home/fk380811/dihtyaruk.github.io/sit.com.ua/www/system/');
+define('DIR_IMAGE', '/home/fk380811/dihtyaruk.github.io/sit.com.ua/www/image/');
 define('DIR_STORAGE', '/home/fk380811/storage/');
 define('DIR_LANGUAGE', DIR_APPLICATION . 'language/');
 define('DIR_TEMPLATE', DIR_APPLICATION . 'view/theme/');
