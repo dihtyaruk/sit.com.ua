@@ -1,9 +1,9 @@
 <?php
 // HTTP
-define('HTTP_SERVER', 'https://www.sit.com.ua/');
+define('HTTP_SERVER', 'https://dihtyaruk.github.io/sit.com.ua/');
 
 // HTTPS
-define('HTTPS_SERVER', 'https://www.sit.com.ua/');
+define('HTTPS_SERVER', 'https://dihtyaruk.github.io/sit.com.ua/');
 
 // DIR
 define('DIR_APPLICATION', '/home/fk380811/sit.com.ua/www/catalog/');
